@@ -6,6 +6,10 @@ output: html_document
 editor_options: 
   chunk_output_type: console
 ---
+```{r}
+library(tidyverse)
+library(gdm)
+```
 
 # GDM use case example
 
@@ -13,13 +17,42 @@ editor_options:
 # Methods
 # Results
 
+## Import the data
 ```{r}
-source("analysis.R")
+source("data-prep.R")
+```
+
+## GDM
+```{r}
+library(gdm)
+tbl_04
+# table is an x-y species list (bioFormat = 2) where there is one row per species record rather than per site
 ```
 
 ```{r}
-
+str(tbl_03)
+sppTab_Bowra <- tbl_03[, c("common_name", "point_name", "lat", "lon")]
+envTab_Bowra <- tbl_03[, c(3:ncol(tbl_03))]
+envTab_Bowra <- envTab_Bowra %>% select(-c(treatment, site_code))
 ```
+
+```{r}
+# get site pair table
+gdmTab <- formatsitepair(bioData=sppTab_Bowra, 
+                         bioFormat=2, #x-y spp list
+                         XColumn="lon", 
+                         YColumn="lat",
+                         sppColumn="common_name", 
+                         siteColumn="point_name", 
+                         predData=envTab_Bowra, verbose = TRUE)
+
+# fit a gdm
+gdm_01 <- gdm(data=gdmTab, geo = TRUE)
+summary(gdm_01)
+length(gdm_01$predictors) # get ideal of number of panels
+plot(gdm_01, plot.layout=c(2,3))
+```
+
 
 # Discussion
 
