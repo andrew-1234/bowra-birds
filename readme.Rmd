@@ -1,0 +1,25 @@
+---
+title: "readme"
+author: "Andrew"
+date: "8/18/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# GDM use case example
+
+# Introduction
+# Methods
+# Results
+
+```{r}
+source("analysis.R")
+```
+
+```{r}
+
+```
+
+# Discussion
+
