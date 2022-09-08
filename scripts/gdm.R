@@ -10,10 +10,10 @@ str(tbl_03)
 # drop shrub cover column due to a missing data point 
 
 tbl_05 <- tbl_03 %>%
-        select(-c(fid, lat, lon, area, HubName, shrub_cove))
+        dplyr::select(-c(fid, lat, lon, area, HubName, shrub_cove))
 sppTab_Bowra <- tbl_05[, c("common_name", "point_name", "X", "Y")]
 envTab_Bowra <- tbl_05[, c(3:ncol(tbl_05))]
-envTab_Bowra <- envTab_Bowra %>% select(-c(treatment, site_code))
+envTab_Bowra <- envTab_Bowra %>% dplyr::select(-c(treatment, site_code))
 
 
 

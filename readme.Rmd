@@ -2,12 +2,12 @@
 title: "readme"
 author: "Andrew"
 date: "8/18/2022"
-output: html_document
+output: rmarkdown::github_document
 editor_options: 
   chunk_output_type: console
 ---
 
-```{r}
+```{r setup, include = FALSE}
 library(tidyverse)
 library(gdm)
 library(raster)
@@ -15,25 +15,47 @@ library(sp)
 library(rgdal)
 library(colorRamps)
 library(RStoolbox) # for ggRGB function
+
+knitr::opts_chunk$set(
+  fig.path = "output/readme-"
+)
+
+knitr::opts_chunk$set(
+        echo = FALSE, message = FALSE, warning = FALSE
+)
 ```
 
-# GDM use case example
+# Summary
 
-## Import the data
+Demonstrate a workflow / use case for passive acoustic monitoring data, with GDM
+
+## Introduction
+
+## Methods
+
+Model 1:
+
+The CSV files generated were imported into R. GDM was conducted using environmental data collected from the recording locations, to determine if compositional disimilarity was related to changes in habitat metrics. Distance to water source was calculated as a distance in meters from each study site location, based on the QLD waterways spatial layer. 
+
+Model 2: 
+
+A model was also conducted with raster layer spatial data obtained from the Sentinel hub platform. To determine the relationships with remotely sensed data (vegetation/greenness indices) and variation in compositional dissimilarity of bird species at the property. The indices used were SAVI and NDVI.  
+
+Satellite images were used for the dates (what dates) when the study took place (iamges with cloud cover 0%). 
+
+## Results
 
 ```{r}
+# import the data
 source("scripts/data-prep.R")
 ```
 
-## Analysis
-
-### Species frequency table
-
+Species frequency table: 
 ```{r}
 tbl_04
 ```
 
-### GDM
+### GDM model 1
 #### Detections vs vegetation survey data
 ```{r}
 # source the gdm prep
