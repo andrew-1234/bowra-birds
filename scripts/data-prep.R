@@ -1,11 +1,14 @@
-# Load packages ----
-library(tidyverse)
+# functions ----
+
+# add column with file name of csv (for reading multiple files)
+
 read_plus <- function(flnm) {
         read_csv(flnm) %>% 
                 mutate(filename = flnm)
 }
 
-# Data preparation (birds)----
+# Import acoustic detection - birds----
+
 tbl_01 <-
         list.files(
                 path = "./data/acoustic-detections",
@@ -13,51 +16,70 @@ tbl_01 <-
                 full.names = T) %>% 
                 map_df(~read_plus(.))
 
-## clean filename column
+# clean file name column
+
 tbl_01$filename <- gsub(".*/", "", tbl_01$filename)
 
-## match to metadata
-## list file names used and put manually into metadata file
+# Import acoustic site metadata file----
+
+# list acoustic detection file names, and add manually to metadata file to match study sites to csv files, if they don't already match 
+
 list.files(
         path = "./data/acoustic-detections",
         pattern = "*.csv")
 
-## left join acoustic records and metadata file
-metadata <- read.csv(file = "data/site-metadata.csv")
+# read the metadata file
+
+metadata <- read.csv(file = "data/site-metadata-with-water-3577.csv")
+
+# left join with acoustic detections (tbl_01)
 
 tbl_02 <- left_join(tbl_01, metadata, by = "filename")
 
-## filter records (common_name_tags)
-tbl_03_p1 <- tbl_02 %>% select(common_name_tags, 33:42) %>%
+# Data cleaning - common and general tags ----
+
+# filter records (common_name_tags)
+
+tbl_03_p1 <- tbl_02 %>% dplyr::select(common_name_tags, 33:48) %>%
         separate(common_name_tags, 
                  into = c("tag_number", "common_name"), 
                  sep = ":", remove = F) %>% 
         filter(common_name != "NA" & common_name != "Goat") %>% 
-        select(-c(common_name_tags))
+        dplyr::select(-c(common_name_tags))
 
 
-## filter records (general_tags) and attach rows to previous table
-tbl_03_p2 <- tbl_02 %>% select(other_tags, 33:42) %>%
+# filter records (general_tags)
+
+tbl_03_p2 <- tbl_02 %>% dplyr::select(other_tags, 33:48) %>%
         separate(other_tags, 
                  into = c("tag_number", "other", "discard"), 
                  sep = ":", remove = F) %>% 
         filter(other != "NA" & other != "Cow" & other !="insect") %>% 
-        select(-c(other_tags, discard)) %>% rename(common_name = other)
+        dplyr::select(-c(other_tags, discard)) %>% rename(common_name = other)
 
-## join the common_name tags to the general tags
+# join the common_name tags df to the general_tags df
+
 tbl_03 <- bind_rows(tbl_03_p1, tbl_03_p2)
 
-### check for consistency in names and fix errors
-#view(tbl_03 %>% count(common_name))
+# check for consistency in names and fix errors
 
-tbl_03 <- mutate(tbl_03, common_name = case_when(common_name == "Grey shike-thrush" ~ "Grey Shrike-thrush", TRUE ~ common_name))
+# view(tbl_03 %>% count(common_name))
 
-#---- format as a species frequency table
-tbl_04 <- tbl_03 %>% group_by(site_code) %>% count(common_name) %>% 
-        pivot_wider(names_from = site_code, values_from = n)
+tbl_03 <- mutate(tbl_03, 
+                 common_name = case_when(
+                         common_name == "Grey shike-thrush" ~ 
+                                 "Grey Shrike-thrush", 
+                         TRUE ~ common_name))
+
+#---- format as a species frequency table, per study site
+
+tbl_04 <- tbl_03 %>% 
+                group_by(site_code) %>% 
+                count(common_name) %>% 
+                pivot_wider(names_from = site_code, values_from = n)
 
 #---- format as a species presence/absence matrix
-tbl_04[,2:10] <- ifelse(is.na(tbl_04[,2:10]), 0, 1)
+# tbl_04[,2:10] <- ifelse(is.na(tbl_04[,2:10]), 0, 1)
 
 #view(tbl_04 %>% count(common_name))
 ### further standardise name formatting if required
@@ -65,9 +87,7 @@ tbl_04[,2:10] <- ifelse(is.na(tbl_04[,2:10]), 0, 1)
 ### complete_df$common_name <- str_replace(complete_df$common_name, "-", " ")
 ### complete_df$common_name <- str_remove(complete_df$common_name, "'")
 
-# Data preparation (vegetation) ----
-
-# Attach feeding guild information (necessary?) ----
+# Potential further avenues: Attach feeding guild information? ----
 # feeding <- read.csv("C:/Users/n10393021/OneDrive - Queensland University of Technology/Documents/_Soundscapes/Brendan_BowraData/birds_feedinghabits.csv") 
 # feeding$Row.Labels <- tolower(feeding$Row.Labels)
 # feeding$Row.Labels <- str_replace(feeding$Row.Labels, "-", " ")

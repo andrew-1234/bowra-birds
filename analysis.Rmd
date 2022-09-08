@@ -1,13 +1,170 @@
 ---
-title: "analysis"
+title: "readme"
 author: "Andrew"
 date: "8/18/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
-# Introduction
-# Methods
-# Results
+
+```{r}
+library(tidyverse)
+library(gdm)
+library(raster)
+library(sp)
+library(rgdal)
+library(colorRamps)
+library(RStoolbox) # for ggRGB function
+```
+
+# GDM use case example
+
+## Import the data
+
+```{r}
+source("scripts/data-prep.R")
+```
+
+## Analysis
+
+### Species frequency table
+
+```{r}
+tbl_04
+```
+
+### GDM
+#### Detections vs vegetation survey data
+```{r}
+# source the gdm prep
+source("scripts/gdm.R")
+
+# fit a gdm
+gdm_01 <- gdm(data=gdmTab, geo = TRUE)
+summary(gdm_01)
+```
+
+```{r}
+#length(gdm_01$predictors) # get ideal of number of panels
+plot(gdm_01, plot.layout=c(2,3))
+```
+
+#### Detections vs remote sensing
+
+"Environmental data can be extracted directly from rasters, assuming the x-y coordinates of sites are provided in either a site-species table (bioFormat=1) or as a x-y species list (bioFormat=2)."
+
+```{r}
+# environmental raster data for sw oz
+
+savi <- raster("gis/sentinel/Sentinel-2-L1C_SAVI-GREEN-TO-WHITE_2017-08-29_2017-09-25_16196615.25_-3250094.53_16209828.34_-3243358.02_EPSG_3577_0_mostRecent_logo.tif", band = 2)
+
+plot(savi)
+
+ndvi <- raster("gis/sentinel/Sentinel-2-L1C_NDVI_2017-08-29_2017-09-25_16195224.26_-3250521.17_16211366.77_-3242695.26_EPSG_3577_0_mostRecent_logo.tif",  band = 2)
+
+plot(ndvi)
+
+stack_test <- stack("gis/sentinel/Sentinel-2-L1C_SAVI-GREEN-TO-WHITE_2017-08-29_2017-09-25_16196615.25_-3250094.53_16209828.34_-3243358.02_EPSG_3577_0_mostRecent_logo.tif")
+
+plotRGB(stack_test)
+
+newproj <- "+proj=aea +lat_0=0 +lon_0=132 +lat_1=-18 +lat_2=-36 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=61.55,-10.87,-40.19,-39.4924,-32.7221,-32.8979,-9.99400000001316 +units=m +no_defs +type=crs"
+
+testing <- projectRaster(savi, crs = newproj)
+
+gdmTab.rast <- formatsitepair(bioData=sppTab_Bowra, 
+                              bioFormat=2, # x-y spp list
+                              XColumn="X", 
+                              YColumn="Y", 
+                              sppColumn="common_name",
+                              siteColumn="point_name",
+                              predData=savi) #raster stack
+
+gdmTab.rast.2 <- formatsitepair(bioData=sppTab_Bowra, 
+                              bioFormat=2, # x-y spp list
+                              XColumn="X", 
+                              YColumn="Y", 
+                              sppColumn="common_name",
+                              siteColumn="point_name",
+                              predData=ndvi) #raster stack
+```
+
+"Because some sites might not overlap with the rasters, we should check for and remove NA values from the site-pair table"
+
+```{r}
+sum(is.na(gdmTab.rast))
+#gdmTab.rast <- na.omit(gdmTab.rast)
+```
+
+"Note that the formatsitepair function assumes that the coordinates of the sites are in the same coordinate system as the rasters. At present, no checking is performed to ensure this is the case. Note also that if your site coordinates are longitude-latitude that the calculation of geographic distances between sites will have errors, the size of which will depend on the geographic extent and location of your study region. We hope to deal with this in a later release, but for now you can avoid these problems by using a projected coordinate system (e.g., equidistant)."
+
+Spatial coordinate system I am using is EPSG:3577 (X, Y cols in metadata) with reprojected raster layers from Sentinel Hub.  
+
+Fit a GDM using the satellite data: 
+
+```{r}
+# fit a new gdm using a table with sat data only (to match rasters)
+
+gdm.rast <- gdm(gdmTab.rast, geo=T)
+
+summary(gdm.rast)
+
+gdm.rast.2 <- gdm(gdmTab.rast.2, geo=T)
+
+summary(gdm.rast.2)
+
+transRasts <- gdm.transform(model=gdm.rast, data=savi)
+
+raster::plot(transRasts, col=rgb.tables(1000))
+```
+
+
+```{r}
+# Get the data from the gdm transformed rasters as a table
+
+rastDat <- na.omit(raster::getValues(transRasts))
+
+# The PCA can be fit on a sample of grid cells if the rasters are large
+
+#rastDat <- raster::sampleRandom(transRasts, 50000) 
+
+# perform the principle components analysis
+
+pcaSamp <- prcomp(rastDat)
+ 
+# Predict the first three principle components for every cell in the rasters
+
+# note the use of the 'index' argument
+
+pcaRast <- raster::predict(transRasts, pcaSamp, index=1:3)
+
+# scale the PCA rasters to make full use of the colour spectrum
+
+pcaRast[[1]] <- (pcaRast[[1]]-pcaRast[[1]]@data@min) /
+  (pcaRast[[1]]@data@max-pcaRast[[1]]@data@min)*255
+pcaRast[[2]] <- (pcaRast[[2]]-pcaRast[[2]]@data@min) /
+  (pcaRast[[2]]@data@max-pcaRast[[2]]@data@min)*255
+pcaRast[[3]] <- (pcaRast[[3]]-pcaRast[[3]]@data@min) /
+  (pcaRast[[3]]@data@max-pcaRast[[3]]@data@min)*255
+
+# Plot the three PCA rasters simultaneously, each representing a different colour 
+#  (red, green, blue)
+
+raster::plotRGB(pcaRast, r=1, g=2, b=3)
+
+plot(X ~ Y, data = metadata, add = TRUE)
+
+metadata
+
+ggRGB(pcaRast, r=1, g=2, b=3) + geom_point(data = metadata, aes(x = X, y = Y, color = treatment))
+
+```
+
+
+```{r}
+
+```
+
 
 # Discussion
-
 
