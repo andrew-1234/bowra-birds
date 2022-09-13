@@ -71,6 +71,13 @@ summary(gdm_01)
 plot(gdm_01, plot.layout=c(2,3))
 ```
 
+Assess the statistical significance of the full GDM using a permutation test:
+
+```{r}
+modTest <- gdm.varImp(gdmTab, geo=T, nPerm=100, parallel=T, cores=8, predSelect=F)
+barplot(sort(modTest$`Predictor Importance`[,1], decreasing=T))
+```
+
 #### Detections vs remote sensing
 
 "Environmental data can be extracted directly from rasters, assuming the x-y coordinates of sites are provided in either a site-species table (bioFormat=1) or as a x-y species list (bioFormat=2)."
@@ -89,6 +96,13 @@ plot(ndvi)
 stack_test <- stack("gis/sentinel/Sentinel-2-L1C_SAVI-GREEN-TO-WHITE_2017-08-29_2017-09-25_16196615.25_-3250094.53_16209828.34_-3243358.02_EPSG_3577_0_mostRecent_logo.tif")
 
 plotRGB(stack_test)
+
+# create stack of savi and ndvi
+extent(savi)
+ext_sav <- c(1308835, 1320943, -3110426, -3103241)
+ndvi_crop <- crop(ndvi, ext_sav)
+
+stack1 <- stack(savi, ndvi_crop) # still doesn't match extent - raster stack in QGIS instead
 
 newproj <- "+proj=aea +lat_0=0 +lon_0=132 +lat_1=-18 +lat_2=-36 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=61.55,-10.87,-40.19,-39.4924,-32.7221,-32.8979,-9.99400000001316 +units=m +no_defs +type=crs"
 
@@ -187,6 +201,30 @@ ggRGB(pcaRast, r=1, g=2, b=3) + geom_point(data = metadata, aes(x = X, y = Y, co
 
 ```
 
+### Dataset 2: Small spatial scale (SSS)
+
+```{r}
+# import the data
+source("scripts/data-prep-SSS.R")
+```
+"Site weighting type: Equal"
+"Site-pair table created with 946 rows (44 unique sites) and 16 columns (5 environmental variables)."
+
+Fit a GDM
+```{r}
+# fit a gdm
+gdm_SSS_env <- gdm(data=gdm_tab_SSS, geo = FALSE)
+summary(gdm_SSS_env)
+
+#length(gdm_SSS_env$predictors) # get ideal of number of panels
+plot(gdm_SSS_env, plot.layout=c(2,3))
+
+#Assess the statistical significance of the full GDM using a permutation test:
+
+mod_test_SSS <- gdm.varImp(gdm_tab_SSS, geo=F, nPerm=50, parallel=T, cores=8, predSelect=F)
+barplot(sort(mod_test_SSS$`Predictor Importance`[,1], decreasing=T))
+```
+```
 
 # Discussion
 
