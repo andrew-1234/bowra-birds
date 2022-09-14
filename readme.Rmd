@@ -224,7 +224,81 @@ plot(gdm_SSS_env, plot.layout=c(2,3))
 mod_test_SSS <- gdm.varImp(gdm_tab_SSS, geo=F, nPerm=50, parallel=T, cores=8, predSelect=F)
 barplot(sort(mod_test_SSS$`Predictor Importance`[,1], decreasing=T))
 ```
+
+Fit with satellite data:
+```{r}
+#sss_savi <- raster("gis-sss/sentinel/SAVI-reprojected.tif", band = 2)
+sss_savi <- raster("gis-sss/sentinel/NDVI-repprojected.tif", band = 2)
+
+plot(sss_savi)
+
+gdm_tab_SSS_RS <- formatsitepair(bioData=sss_birds_sat, 
+                              bioFormat=1, # x-y spp list
+                              XColumn="X", 
+                              YColumn="Y", 
+                              siteColumn="Point",
+                              predData=sss_savi) #raster stack
+
 ```
+
+"Because some sites might not overlap with the rasters, we should check for and remove NA values from the site-pair table"
+
+```{r}
+sum(is.na(gdm_tab_SSS_RS))
+#gdmTab.rast <- na.omit(gdmTab.rast)
+```
+
+```{r}
+gdm_SSS_RS <- gdm(gdm_tab_SSS_RS, geo=T)
+
+summary(gdm_SSS_RS)
+plot(gdm_SSS_RS)
+
+transRasts <- gdm.transform(model=gdm_SSS_RS, data=savi)
+
+raster::plot(transRasts, col=rgb.tables(1000))
+```
+
+```{r}
+# Get the data from the gdm transformed rasters as a table
+
+rastDat <- na.omit(raster::getValues(transRasts))
+
+# The PCA can be fit on a sample of grid cells if the rasters are large
+
+#rastDat <- raster::sampleRandom(transRasts, 50000) 
+
+# perform the principle components analysis
+
+pcaSamp <- prcomp(rastDat)
+ 
+# Predict the first three principle components for every cell in the rasters
+
+# note the use of the 'index' argument
+
+pcaRast <- raster::predict(transRasts, pcaSamp, index=1:3)
+
+# scale the PCA rasters to make full use of the colour spectrum
+
+pcaRast[[1]] <- (pcaRast[[1]]-pcaRast[[1]]@data@min) /
+  (pcaRast[[1]]@data@max-pcaRast[[1]]@data@min)*255
+pcaRast[[2]] <- (pcaRast[[2]]-pcaRast[[2]]@data@min) /
+  (pcaRast[[2]]@data@max-pcaRast[[2]]@data@min)*255
+pcaRast[[3]] <- (pcaRast[[3]]-pcaRast[[3]]@data@min) /
+  (pcaRast[[3]]@data@max-pcaRast[[3]]@data@min)*255
+
+# Plot the three PCA rasters simultaneously, each representing a different colour 
+#  (red, green, blue)
+
+raster::plotRGB(pcaRast, r=1, g=2, b=3)
+
+plot(X ~ Y, data = sss_env_merging, add = TRUE)
+
+metadata
+
+ggRGB(pcaRast, r=1, g=2, b=3) + geom_point(data = sss_env_merging, aes(x = X, y = Y))
+```
+
 
 # Discussion
 

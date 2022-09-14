@@ -15,7 +15,7 @@ sss_birds <- sss_birds %>%
 
 ## read in recorder sites metadata (vegetation etc) ----
 
-sss_env <- read.csv(file = "./data/data-SSS/data-bowra-SSS-sites.csv")
+sss_env <- read.csv(file = "./data/data-SSS/data-bowra-SSS-sites-3577.csv")
 
 # sss_env is in format of site by environment table (sites are rows, predictors are columns)
 
@@ -26,16 +26,28 @@ sss_env <- sss_env %>%
         dplyr::select(c(Point, 
                         CanopyCover:SubcanopyHeight, 
                         DistWater, 
-                        LAT, 
-                        LONG))
+                        X, 
+                        Y))
 
 # prepare site-pair table----
+
 library(gdm)
+
 # get site pair table----
+
 gdm_tab_SSS <- formatsitepair(bioData=sss_birds, 
                          bioFormat=1, #site-species table
-                         XColumn="LONG", 
-                         YColumn="LAT",
+                         XColumn="X", 
+                         YColumn="Y",
                          siteColumn="Point", 
                          predData=sss_env, 
                          verbose = TRUE)
+
+# add X Y data to site-species table to work with raster input as predictor
+
+# subset 
+sss_env_merging <- sss_env %>% 
+        dplyr::select(c(Point, X, Y))
+
+sss_birds_sat <- sss_birds %>% dplyr::left_join(sss_env_merging, by = "Point")
+str(sss_birds_sat)
