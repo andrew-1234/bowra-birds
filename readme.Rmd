@@ -228,7 +228,7 @@ barplot(sort(mod_test_SSS$`Predictor Importance`[,1], decreasing=T))
 Fit with satellite data:
 ```{r}
 #sss_savi <- raster("gis-sss/sentinel/SAVI-reprojected.tif", band = 2)
-sss_savi <- raster("gis-sss/sentinel/NDVI-repprojected.tif", band = 2)
+sss_savi <- raster("gis-sss/sentinel/SAVI-reprojected.tif", band = 2)
 
 plot(sss_savi)
 
@@ -254,7 +254,7 @@ gdm_SSS_RS <- gdm(gdm_tab_SSS_RS, geo=T)
 summary(gdm_SSS_RS)
 plot(gdm_SSS_RS)
 
-transRasts <- gdm.transform(model=gdm_SSS_RS, data=savi)
+transRasts <- gdm.transform(model=gdm_SSS_RS, data=sss_savi)
 
 raster::plot(transRasts, col=rgb.tables(1000))
 ```
