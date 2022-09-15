@@ -93,20 +93,20 @@ ndvi <- raster("gis/sentinel/Sentinel-2-L1C_NDVI_2017-08-29_2017-09-25_16195224.
 
 plot(ndvi)
 
-stack_test <- stack("gis/sentinel/Sentinel-2-L1C_SAVI-GREEN-TO-WHITE_2017-08-29_2017-09-25_16196615.25_-3250094.53_16209828.34_-3243358.02_EPSG_3577_0_mostRecent_logo.tif")
+#stack_test <- stack("gis/sentinel/Sentinel-2-L1C_SAVI-GREEN-TO-WHITE_2017-08-29_2017-09-25_16196615.25_-3250094.53_16209828.34_-3243358.02_EPSG_3577_0_mostRecent_logo.tif")
 
-plotRGB(stack_test)
+# plotRGB(stack_test)
 
 # create stack of savi and ndvi
-extent(savi)
-ext_sav <- c(1308835, 1320943, -3110426, -3103241)
-ndvi_crop <- crop(ndvi, ext_sav)
+#extent(savi)
+#ext_sav <- c(1308835, 1320943, -3110426, -3103241)
+#ndvi_crop <- crop(ndvi, ext_sav)
 
-stack1 <- stack(savi, ndvi_crop) # still doesn't match extent - raster stack in QGIS instead
+#stack1 <- stack(savi, ndvi_crop) # still doesn't match extent - raster stack in QGIS instead
 
-newproj <- "+proj=aea +lat_0=0 +lon_0=132 +lat_1=-18 +lat_2=-36 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=61.55,-10.87,-40.19,-39.4924,-32.7221,-32.8979,-9.99400000001316 +units=m +no_defs +type=crs"
+#newproj <- "+proj=aea +lat_0=0 +lon_0=132 +lat_1=-18 +lat_2=-36 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=61.55,-10.87,-40.19,-39.4924,-32.7221,-32.8979,-9.99400000001316 +units=m +no_defs +type=crs"
 
-testing <- projectRaster(savi, crs = newproj)
+#testing <- projectRaster(savi, crs = newproj)
 
 gdmTab.rast <- formatsitepair(bioData=sppTab_Bowra, 
                               bioFormat=2, # x-y spp list
